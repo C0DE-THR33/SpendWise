@@ -33,3 +33,6 @@ next-env.d.ts
 
 # prisma generated client (checked out fresh via `prisma generate`)
 /src/generated/prisma
+
+# Setu AA probe output — raw sandbox payloads
+/prototypes/setu-aa/log.jsonl

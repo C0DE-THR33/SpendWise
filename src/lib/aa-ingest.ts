@@ -277,12 +277,12 @@ export async function ingestDataSession(params: {
       }
     }
 
-    // Refresh the account type from the FIP's own summary. The consent only
-    // reports the coarse AA FIType (`DEPOSIT` covers savings and current
-    // alike), so a current account is created as SAVINGS and stays wrong
-    // forever unless the finer type from the statement corrects it. Found by
-    // running the ingest against a canned payload and reading the rows back:
-    // the parser had this value all along and ingest was dropping it.
+    // Refresh the account type from the FIP's own summary, when there is one.
+    // The live sandbox consent already reports the fine `accType`
+    // (SAVINGS/CURRENT) alongside the coarse `fiType` DEPOSIT, and its data
+    // sessions carry no summary, so there this is a no-op. It is kept for an
+    // AA or FIP that only sends DEPOSIT on the consent — which mapAccountType
+    // turns into SAVINGS — and does send a summary.
     const summaryType = account.accountType ? mapAccountType(account.accountType) : null;
 
     await db.linkedAccount.update({

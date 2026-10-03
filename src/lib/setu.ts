@@ -98,12 +98,13 @@ const API_VERSION = "/v2";
  * not a bad request — a null fair-use template means no policy exists for
  * this FIU there, so the permitted frequency is zero.
  *
- * None of which can rescue an Onemoney-backed product instance: its UAT
- * answers no mobile number its team has not pre-whitelisted on request
- * (1–2 business days), so its approval screen refuses even the documented
- * `123456` with "Incorrect OTP! Please check." Verified in a browser. That
- * is a Bridge/AA-onboarding problem, and no value of this variable and no
- * change in this file can work around it.
+ * Approval is a separate matter from routing, and it depends on the number,
+ * not on this variable. The sandbox product routes to Onemoney, whose
+ * approval screen refuses `9999999999` (even with the documented `123456`,
+ * as "Incorrect OTP! Please check.") but accepts a real mobile number whose
+ * OTP the tester actually receives — no whitelisting request needed.
+ * Verified 2026-10-03 with prototypes/setu-aa: consent ACTIVE, data session
+ * delivered.
  */
 export function toVua(mobileNumber: string): string {
   const digits = mobileNumber.replace(/\D/g, "").slice(-10);
@@ -294,7 +295,22 @@ export async function createDataSession(params: {
  * ingesting rather than discarding.
  */
 export async function getDataSession(dataSessionId: string): Promise<ParsedDataSession> {
-  return parseDataSession(await setuFetch(`/sessions/${encodeURIComponent(dataSessionId)}`));
+  try {
+    return parseDataSession(await setuFetch(`/sessions/${encodeURIComponent(dataSessionId)}`));
+  } catch (error) {
+    // The live sandbox answers a read before the FIPs have delivered with a
+    // 400 ("Data is not yet ready for fetch, retry after FI notification")
+    // rather than a PENDING session. That is the normal first poll of every
+    // connect, not a failure, so it is reported the way the docs describe.
+    if (
+      error instanceof SetuApiError &&
+      error.status === 400 &&
+      /not yet ready/i.test(error.body)
+    ) {
+      return { status: "PENDING", accounts: [] };
+    }
+    throw error;
+  }
 }
 
 // --- Webhooks --------------------------------------------------------------

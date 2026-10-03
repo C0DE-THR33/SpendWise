@@ -159,6 +159,25 @@ function parseTransaction(raw: unknown): ParsedTransaction | null {
   };
 }
 
+/**
+ * The running balance on the most recent transaction. A consent raised for
+ * TRANSACTIONS alone (what the sandbox product sends) gets no `summary`
+ * block, so this is the only place a balance appears. FIPs do not send
+ * transactions in date order — the live sandbox's are shuffled — so "the
+ * last element" is not "the latest".
+ */
+function latestBalance(transactions: unknown[]): string | null {
+  let latest: { at: number; balance: string } | null = null;
+  for (const raw of transactions) {
+    const balance = str(raw, "currentBalance");
+    const timestamp = str(raw, "transactionTimestamp", "valueDate");
+    const at = timestamp ? new Date(timestamp).getTime() : NaN;
+    if (balance === null || Number.isNaN(at)) continue;
+    if (!latest || at > latest.at) latest = { at, balance };
+  }
+  return latest?.balance ?? null;
+}
+
 export function parseDataSession(payload: unknown): ParsedDataSession {
   const accounts: ParsedAccountData[] = [];
 
@@ -180,9 +199,10 @@ export function parseDataSession(payload: unknown): ParsedDataSession {
       const summary = field(accountBody, "summary", "Summary");
       const transactionsBlock = field(accountBody, "transactions", "Transactions");
 
+      const rawTransactions = list(transactionsBlock, "transaction", "Transaction");
       const transactions: ParsedTransaction[] = [];
       let skipped = 0;
-      for (const raw of list(transactionsBlock, "transaction", "Transaction")) {
+      for (const raw of rawTransactions) {
         const parsed = parseTransaction(raw);
         if (parsed) transactions.push(parsed);
         else skipped += 1;
@@ -198,8 +218,11 @@ export function parseDataSession(payload: unknown): ParsedDataSession {
         linkRefNumber,
         maskedAccountNumber: str(account, "maskedAccNumber", "maskedAccountNumber"),
         status: str(account, "FIstatus", "FIStatus", "status"),
+        // Null when there is no summary, which is the sandbox's normal case.
+        // That costs nothing: the consent's `accType` already carries the
+        // fine SAVINGS/CURRENT, and ingest only uses this to correct it.
         accountType: str(summary, "type", "accType"),
-        currentBalance: str(summary, "currentBalance"),
+        currentBalance: str(summary, "currentBalance") ?? latestBalance(rawTransactions),
         transactions,
       });
     }

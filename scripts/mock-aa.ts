@@ -2,14 +2,10 @@
 // raise a consent, approve it, link accounts, fetch and categorize twelve
 // months of statements — can be run end to end without Setu.
 //
-// Why this exists: the sandbox's account aggregator is the one part of this
-// flow the repo cannot fix. A Setu product instance is wired to a specific
-// AA on the Bridge, and the sandbox FIU is wired to Onemoney, whose UAT
-// answers no mobile number its team has not pre-whitelisted on request. So a
-// consent is created happily and then refused at the OTP screen — three
-// redirects away, with the documented 123456 rejected as "Incorrect OTP!
-// Please check." Nothing in lib/setu.ts can detect or route around that
-// (README step 1).
+// Why this exists: every real sandbox approval needs a phone to receive an
+// OTP on (Onemoney refuses the dummy 9999999999 — README step 1), and Setu
+// can only deliver webhooks to a public URL. This approves with a click and
+// posts webhooks to localhost, so the flow can be rerun in seconds.
 //
 // This serves the same four endpoints under the same /v2 prefix, so the app
 // reaches it through the ordinary client with the ordinary credentials
@@ -22,8 +18,9 @@
 // shaped like a relayed FIP response, including the parts that make real
 // ones annoying — XML-derived casing (`fipID`, `FIstatus`,
 // `maskedAccNumber`), a single transaction arriving as a bare object rather
-// than a one-element array, and a coarse `DEPOSIT` on the consent against a
-// finer `CURRENT` in the statement summary. Those are precisely the cases
+// than a one-element array, and no `summary` block, so the balance has to be
+// read off the transactions — as captured from the live sandbox on
+// 2026-10-03 (prototypes/setu-aa). Those are precisely the cases
 // setu-parse.ts exists to absorb, so a mock that sent tidy JSON would prove
 // nothing (CONVENTIONS.md #8).
 //
@@ -336,7 +333,7 @@ function approvalPage(consent: Consent): string {
   <span class="tag">Mock Account Aggregator</span>
   <h2 style="margin:.2rem 0 .4rem">Share your financial data</h2>
   <p class="note">SpendWise is requesting 12 months of statements for <strong>${consent.vua}</strong>.
-     There is no OTP here — this screen stands in for the AA that the sandbox cannot approve.</p>
+     There is no OTP here — this screen stands in for the AA's approval screens.</p>
   <form method="POST">
     ${rows}
     <div class="row">
@@ -391,14 +388,15 @@ const server = createServer(async (req, res) => {
       id: consent.id,
       status: consent.status,
       detail: { consentExpiry: consent.expiry },
-      // Top-level, and `accType` is the coarse DEPOSIT a consent actually
-      // carries — the finer SAVINGS/CURRENT only appears in the FI summary.
+      // Top-level, as the live sandbox sends it: `fiType` is the coarse
+      // DEPOSIT, `accType` the fine SAVINGS/CURRENT.
       accountsLinked: ACCOUNTS.filter((a) => consent.linked.includes(a.linkRefNumber)).map((a) => ({
         fipId: a.fipId,
         fipName: a.fipName,
         linkRefNumber: a.linkRefNumber,
         maskedAccNumber: a.maskedAccNumber,
-        accType: "DEPOSIT",
+        fiType: "DEPOSIT",
+        accType: a.summaryType,
       })),
     });
   }
@@ -442,7 +440,6 @@ const server = createServer(async (req, res) => {
       // one slow bank should not cost the user the accounts that answered.
       const timedOut = PARTIAL && index === 1;
       const transactions = timedOut ? [] : buildTransactions(account);
-      const last = transactions.at(-1);
 
       return {
         fipID: account.fipId,
@@ -455,11 +452,9 @@ const server = createServer(async (req, res) => {
               ? {}
               : {
                   data: {
+                    // No `summary`: the sandbox consent asks for
+                    // TRANSACTIONS only, so the live payload has none.
                     account: {
-                      summary: {
-                        type: account.summaryType,
-                        currentBalance: last?.currentBalance ?? two(account.openingBalance),
-                      },
                       // A FIP with exactly one line sends a bare object
                       // rather than a one-element array. The real ones do
                       // this, and a plain `.map()` over it throws.
