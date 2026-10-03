@@ -4,14 +4,31 @@
     {
       "name": "spendwise-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "mock-aa",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "mock:aa", "--", "--webhook", "http://localhost:3000/api/aa/webhook"],
+      "runtimeArgs": [
+        "run",
+        "mock:aa",
+        "--",
+        "--webhook",
+        "http://localhost:3000/api/aa/webhook"
+      ],
       "port": 4100
+    },
+    {
+      "name": "setu-probe",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "prototypes/setu-aa/server.mjs"
+      ],
+      "port": 4200
     }
   ]
 }
