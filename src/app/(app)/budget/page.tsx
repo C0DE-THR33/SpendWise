@@ -4,7 +4,9 @@ import { formatCurrency } from "@/lib/utils";
 import { formatMonthLabel } from "@/lib/dates";
 import { asCategoryIcon, asCategoryColor } from "@/lib/categories";
 import { CategoryTile } from "@/components/transactions/CategoryTile";
+import { CategoryStatRow } from "@/components/CategoryStatRow";
 import { BudgetPaceBar } from "@/components/budget/BudgetPaceBar";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { setMonthlyBudget, setCategoryBudget } from "./actions";
 
 export default async function BudgetPage() {
@@ -14,36 +16,46 @@ export default async function BudgetPage() {
   const data = await getBudgetData(user.id);
   const budgetedCategoryIds = new Set(data.categories.map((c) => c.categoryId));
   const unbudgetedCategories = data.allCategories.filter((c) => !budgetedCategoryIds.has(c.id));
+  const remaining = data.totalBudget === null ? null : data.totalBudget - data.totalSpent;
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <header className="mb-5">
-        <p className="text-[13px] font-medium text-fg-muted">{formatMonthLabel(data.monthKey)}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-fg">Budget</h1>
-      </header>
+      <PageHeader
+        eyebrow={formatMonthLabel(data.monthKey)}
+        title="Budget"
+        initial={user.email.charAt(0)}
+      />
 
-      <section className="mb-5 rounded-card bg-accent-soft p-5 shadow-card">
+      <section className="mb-6 rounded-card bg-surface p-5 shadow-card">
         {data.totalBudget !== null ? (
           <>
-            <div className="mb-1 flex items-baseline gap-1.5">
-              <span className="text-[28px] font-bold tracking-tight text-fg tnum">
-                {formatCurrency(data.totalSpent)}
-              </span>
-              <span className="text-sm font-medium text-accent-soft-fg tnum">
-                of {formatCurrency(data.totalBudget)}
-              </span>
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-medium text-fg-muted">Monthly budget</p>
+                <p className="mt-0.5 text-[28px] font-bold leading-none tracking-tight text-fg tnum">
+                  {formatCurrency(data.totalBudget)}
+                </p>
+              </div>
+              <p className="text-right text-[13px] font-medium text-fg-muted">
+                <span
+                  className={`block text-[15px] font-bold tnum ${
+                    (remaining ?? 0) < 0 ? "text-danger-fg" : "text-fg"
+                  }`}
+                >
+                  {formatCurrency(Math.abs(remaining ?? 0))}
+                </span>
+                {(remaining ?? 0) < 0 ? "over" : "left"}
+              </p>
             </div>
-            <div className="mt-4">
-              <BudgetPaceBar spent={data.totalSpent} budget={data.totalBudget} />
-            </div>
+            <BudgetPaceBar spent={data.totalSpent} budget={data.totalBudget} />
           </>
         ) : (
-          <p className="text-sm font-medium text-accent-soft-fg">
+          <p className="text-sm font-medium text-fg-muted">
             No budget set for {formatMonthLabel(data.monthKey)} yet.
           </p>
         )}
 
-        <form action={setMonthlyBudget} className="mt-4 flex gap-2">
+        <form action={setMonthlyBudget} className="mt-5 flex gap-2">
           <input
             type="number"
             name="totalAmount"
@@ -52,11 +64,11 @@ export default async function BudgetPage() {
             required
             placeholder="Total monthly budget"
             defaultValue={data.totalBudget ?? undefined}
-            className="tnum flex-1 rounded-pill border border-border bg-surface px-4 py-2.5 text-sm font-medium text-fg outline-none focus:border-accent"
+            className="tnum flex-1 rounded-pill border border-border bg-bg px-4 py-3 text-sm font-medium text-fg outline-none focus:border-accent"
           />
           <button
             type="submit"
-            className="rounded-pill bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg"
+            className="rounded-pill bg-accent px-5 py-3 text-sm font-bold text-accent-fg"
           >
             Save
           </button>
@@ -64,48 +76,36 @@ export default async function BudgetPage() {
       </section>
 
       {data.categories.length > 0 ? (
-        <section className="mb-5">
-          <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wide text-fg-faint">
-            By category
-          </h2>
-          <div className="flex flex-col gap-2.5">
+        <section className="mb-6">
+          <h2 className="mb-4 text-[17px] font-bold tracking-tight text-fg">By category</h2>
+          <div className="flex flex-col gap-5">
             {data.categories.map((row) => {
               const over = row.budgeted > 0 && row.spent > row.budgeted;
-              const pct = row.budgeted > 0 ? Math.min(row.spent / row.budgeted, 1) : 0;
               return (
-                <div
+                <CategoryStatRow
                   key={row.categoryId}
-                  className="flex items-center gap-3 rounded-card bg-surface p-3.5 shadow-card"
-                >
-                  <CategoryTile icon={row.icon} color={row.color} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-fg">{row.name}</span>
-                      <span className="shrink-0 text-[13px] font-medium text-fg-muted tnum">
-                        <span className={over ? "font-bold text-danger-fg" : "font-bold text-fg"}>
-                          {formatCurrency(row.spent)}
-                        </span>{" "}
-                        / {formatCurrency(row.budgeted)}
+                  icon={row.icon}
+                  color={row.color}
+                  name={row.name}
+                  caption={
+                    over
+                      ? `${formatCurrency(row.spent - row.budgeted)} over`
+                      : `${formatCurrency(row.budgeted - row.spent)} left`
+                  }
+                  amount={
+                    <>
+                      <span className={over ? "text-danger-fg" : "text-fg"}>
+                        {formatCurrency(row.spent)}
                       </span>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-surface-sunken">
-                      <div
-                        className="h-full rounded-pill"
-                        style={{
-                          width: `${pct * 100}%`,
-                          // Over-budget wins over the category's own color:
-                          // the whole point of this bar is to make overspend
-                          // impossible to miss, and a category hue that
-                          // happens to be reddish shouldn't read as alarming
-                          // while a green one under-sells a real overrun.
-                          backgroundColor: over
-                            ? "var(--color-danger)"
-                            : `var(--color-${row.color})`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                      <span className="font-medium text-fg-muted">
+                        {" / "}
+                        {formatCurrency(row.budgeted)}
+                      </span>
+                    </>
+                  }
+                  fraction={row.budgeted > 0 ? row.spent / row.budgeted : 0}
+                  over={over}
+                />
               );
             })}
           </div>
@@ -113,8 +113,8 @@ export default async function BudgetPage() {
       ) : null}
 
       {unbudgetedCategories.length > 0 ? (
-        <section className="mb-5">
-          <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wide text-fg-faint">
+        <section>
+          <h2 className="mb-4 text-[17px] font-bold tracking-tight text-fg">
             Add a category budget
           </h2>
           <div className="flex flex-col gap-2.5">
@@ -128,9 +128,14 @@ export default async function BudgetPage() {
                 <CategoryTile
                   icon={asCategoryIcon(category.icon)}
                   color={asCategoryColor(category.color)}
-                  size="md"
+                  size="sm"
                 />
-                <span className="flex-1 truncate text-sm font-semibold text-fg">
+                {/* Three controls plus a name on a 375px screen is a tight
+                  * row: at the list's usual weight, "Bills & Utilities" and
+                  * "Entertainment" both truncate to an unreadable stub. The
+                  * name drops to the body weight here and the amount field
+                  * to its narrowest usable width so the full name fits. */}
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-fg">
                   {category.name}
                 </span>
                 <input
@@ -139,12 +144,16 @@ export default async function BudgetPage() {
                   step="0.01"
                   min="0"
                   required
-                  placeholder="Amount"
-                  className="tnum w-24 rounded-pill border border-border bg-bg px-3 py-1.5 text-sm font-medium text-fg outline-none focus:border-accent"
+                  // "Amount" no longer fits the narrowed field, and a
+                  // clipped placeholder is worse than none — the aria-label
+                  // carries the meaning for a screen reader either way.
+                  placeholder="0"
+                  aria-label={`Monthly budget for ${category.name}`}
+                  className="tnum w-[4.5rem] shrink-0 rounded-pill border border-border bg-bg px-3 py-2 text-sm font-medium text-fg outline-none focus:border-accent"
                 />
                 <button
                   type="submit"
-                  className="rounded-pill bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-accent-fg"
+                  className="shrink-0 rounded-pill bg-accent px-3 py-2 text-[13px] font-bold text-accent-fg"
                 >
                   Add
                 </button>

@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getInvestmentsData } from "@/lib/queries";
 import { formatCurrency } from "@/lib/utils";
+import { DetailHeader } from "@/components/ui/PageHeader";
 
 export default async function InvestmentsPage() {
   const user = await getCurrentUser();
@@ -10,7 +11,7 @@ export default async function InvestmentsPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-6 text-xl font-semibold text-fg">Investments</h1>
+      <DetailHeader title="Investments" backHref="/more" />
 
       <section className="mb-6 rounded-card bg-surface shadow-card p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-fg-muted">Current value</p>

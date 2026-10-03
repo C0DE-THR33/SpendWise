@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBillScansData } from "@/lib/queries";
 import { formatCurrency } from "@/lib/utils";
 import { formatShortDate } from "@/lib/dates";
+import { DetailHeader } from "@/components/ui/PageHeader";
 
 // The scan list here is real (getBillScansData). The camera/upload flow
 // that would create a BillScan and run it through the Claude API for
@@ -16,7 +17,7 @@ export default async function BillScannerPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-6 text-xl font-semibold text-fg">Bill scanner</h1>
+      <DetailHeader title="Bill scanner" backHref="/more" />
 
       <button
         disabled

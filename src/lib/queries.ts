@@ -2,7 +2,14 @@ import { db } from "@/lib/db";
 import { toNum } from "@/lib/utils";
 import { asCategoryIcon, asCategoryColor, UNCATEGORIZED_LABEL } from "@/lib/categories";
 import { computeDonutSegments, type DonutResult } from "@/lib/donut";
-import { currentMonthKey, monthRange, type MonthKey } from "@/lib/dates";
+import {
+  currentMonthKey,
+  monthRange,
+  rangeFor,
+  formatRangeLabel,
+  type MonthKey,
+  type RangeKey,
+} from "@/lib/dates";
 import { TransactionDirection, CategorySource, AccountType } from "@prisma/client";
 
 // The entire query layer. One function per page's actual need, called
@@ -85,6 +92,7 @@ export interface HomeTransactionRow {
 
 export interface HomeData {
   totalSpentThisMonth: number;
+  totalIncomeThisMonth: number;
   budgetTotal: number | null;
   budgetRemaining: number | null;
   breakdown: CategoryBreakdownRow[];
@@ -109,8 +117,19 @@ export async function getHomeData(userId: string): Promise<HomeData> {
   const key = currentMonthKey();
   const range = monthRange(key);
 
-  const [breakdownResult, budget, recentTransactions, linkedAccountCount] = await Promise.all([
+  const [breakdownResult, income, budget, recentTransactions, linkedAccountCount] = await Promise.all([
     getCategoryBreakdown(userId, range),
+    // The money-in half of the header pair. Credits are never part of the
+    // spend breakdown (which filters to DEBIT), so this is its own
+    // aggregate rather than something derivable from the rows above.
+    db.transaction.aggregate({
+      where: {
+        linkedAccount: { userId },
+        direction: TransactionDirection.CREDIT,
+        transactionDate: { gte: range.start, lt: range.end },
+      },
+      _sum: { amount: true },
+    }),
     db.monthlyBudget.findUnique({ where: { userId_year_month: { userId, year: key.year, month: key.month } } }),
     getRecentTransactions(userId, 8),
     // Excludes the synthetic CASH account (lib/cash.ts) on purpose:
@@ -123,6 +142,7 @@ export async function getHomeData(userId: string): Promise<HomeData> {
 
   return {
     totalSpentThisMonth: breakdownResult.total,
+    totalIncomeThisMonth: toNum(income._sum.amount),
     budgetTotal,
     budgetRemaining: budgetTotal === null ? null : budgetTotal - breakdownResult.total,
     breakdown: breakdownResult.rows,
@@ -203,14 +223,27 @@ export interface MonthlyTrendPoint {
 
 export interface AnalyticsData {
   monthKey: MonthKey;
+  rangeKey: RangeKey;
+  rangeLabel: string;
   breakdown: CategoryBreakdownRow[];
   donut: DonutResult;
   total: number;
   trend: MonthlyTrendPoint[];
 }
 
-export async function getAnalyticsData(userId: string, monthKey: MonthKey = currentMonthKey()): Promise<AnalyticsData> {
-  const range = monthRange(monthKey);
+/**
+ * The donut and the category list follow the segmented control's window
+ * (day / week / month / year); the trend strip below them is always the
+ * trailing six months, because a six-bar month history is what it is for —
+ * re-scoping it to "the last 7 days" would make it a different chart.
+ */
+export async function getAnalyticsData(
+  userId: string,
+  rangeKey: RangeKey = "month",
+  now: Date = new Date(),
+): Promise<AnalyticsData> {
+  const monthKey = currentMonthKey(now);
+  const range = rangeFor(rangeKey, now);
   const breakdownResult = await getCategoryBreakdown(userId, range);
 
   // Trailing 6 months, oldest first, for the trend strip.
@@ -239,6 +272,8 @@ export async function getAnalyticsData(userId: string, monthKey: MonthKey = curr
 
   return {
     monthKey,
+    rangeKey,
+    rangeLabel: formatRangeLabel(rangeKey, now),
     breakdown: breakdownResult.rows,
     donut: breakdownResult.donut,
     total: breakdownResult.total,

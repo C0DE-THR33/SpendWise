@@ -6,106 +6,126 @@
  * sprinkled through components (CONVENTIONS.md #3). A new design decision
  * gets a token here first, a usage in a component second.
  *
- * These values are the design canvas's (design/*.dc.html) OKLCH palette,
- * copied across verbatim — the canvas is the source of truth for visual
- * decisions per #3, and this file had drifted onto an invented hex/indigo
- * palette while the canvas was believed lost. OKLCH is deliberate: it is
- * perceptually uniform, so holding L and C fixed while rotating H (as the
- * six category colors do) gives swatches of genuinely equal weight, which
- * the same trick in hex/HSL does not.
+ * The palette is the target UI's: a near-white neutral ground, pure white
+ * cards, a violet primary, and six category hues (amber / green / blue /
+ * cyan / violet / gray) taken from the reference screens' category lists.
+ * It replaces the earlier teal-on-tinted-blue canvas palette.
  *
- * The "soft" pairs are the depth mechanism. A surface tinted toward its own
- * accent hue reads as a distinct plane in a way a neutral gray card never
- * does, so hero panels sit on --*-soft rather than on --surface. */
+ * OKLCH is deliberate: it is perceptually uniform, so the category hues can
+ * be tuned to the reference by rotating H at comparable L and C and still
+ * read as swatches of equal weight — the same trick in hex or HSL does not.
+ *
+ * Two structural changes the new design leans on:
+ *   - Category tiles are *soft* now (a 16%-tinted ground with the hue
+ *     itself as the glyph color) rather than saturated chips, so every
+ *     --color-cat-* is used at low mix strength as well as solid. A new
+ *     category hue has to survive both treatments.
+ *   - The bottom bar is a dark floating pill in every theme, so it gets its
+ *     own --color-nav* tokens instead of borrowing --color-surface, which
+ *     would flip with the theme and break the design. */
 :root {
-  --color-bg: oklch(0.975 0.006 240);
-  --color-surface: oklch(0.995 0.003 240);
-  --color-surface-sunken: oklch(0.955 0.008 240);
-  --color-border: oklch(0.9 0.008 240);
+  --color-bg: oklch(0.973 0.003 265);
+  --color-surface: oklch(1 0 0);
+  --color-surface-sunken: oklch(0.952 0.005 265);
+  --color-border: oklch(0.915 0.006 265);
 
-  --color-fg: oklch(0.24 0.02 250);
-  --color-fg-muted: oklch(0.52 0.02 250);
-  --color-fg-faint: oklch(0.68 0.014 250);
+  --color-fg: oklch(0.21 0.02 265);
+  --color-fg-muted: oklch(0.55 0.02 265);
+  --color-fg-faint: oklch(0.68 0.016 265);
 
-  --color-accent: oklch(0.55 0.13 175);
-  --color-accent-fg: oklch(0.995 0.003 240);
-  --color-accent-soft: oklch(0.94 0.035 175);
-  --color-accent-soft-fg: oklch(0.38 0.09 175);
+  --color-accent: oklch(0.55 0.21 285);
+  --color-accent-fg: oklch(1 0 0);
+  --color-accent-soft: oklch(0.95 0.04 285);
+  --color-accent-soft-fg: oklch(0.45 0.18 285);
 
-  --color-warn: oklch(0.72 0.15 65);
-  --color-warn-soft: oklch(0.95 0.045 65);
-  --color-warn-fg: oklch(0.45 0.1 60);
+  --color-warn: oklch(0.77 0.16 68);
+  --color-warn-soft: oklch(0.96 0.045 68);
+  --color-warn-fg: oklch(0.52 0.13 60);
 
-  --color-success: oklch(0.6 0.14 150);
-  --color-success-fg: oklch(0.42 0.12 150);
-  --color-danger: oklch(0.62 0.19 25);
-  --color-danger-fg: oklch(0.5 0.15 25);
-  --color-danger-soft: oklch(0.95 0.04 25);
+  --color-success: oklch(0.66 0.15 155);
+  --color-success-fg: oklch(0.48 0.13 155);
+  --color-danger: oklch(0.62 0.2 25);
+  --color-danger-fg: oklch(0.52 0.17 25);
+  --color-danger-soft: oklch(0.96 0.035 25);
 
-  /* Six category colors, one per icon in lib/categories.ts's CATEGORY_ICONS.
-   * Equal L and C, rotated hue — see the OKLCH note above. The canvas's
-   * sixth swatch is `income` (hue 150); the schema ships `other`, so that
+  /* The dark bottom bar and the raised add button live on these in both
+   * themes — see the note above. */
+  --color-nav: oklch(0.21 0.02 280);
+  --color-nav-fg: oklch(0.99 0.002 280);
+  --color-nav-fg-muted: oklch(0.66 0.015 280);
+
+  /* Six category colors, one per icon in lib/categories.ts's
+   * CATEGORY_ICONS, matched to the reference screens' category list. The
+   * seventh swatch is `income` (hue 155); the schema ships `other`, so that
    * hue is carried here unused rather than silently dropped, pending the
    * product call on which the sixth category should be. */
-  --color-cat-food: oklch(0.68 0.14 55);
-  --color-cat-transport: oklch(0.62 0.12 240);
-  --color-cat-shopping: oklch(0.6 0.13 300);
-  --color-cat-bills: oklch(0.55 0.13 175);
-  --color-cat-entertainment: oklch(0.64 0.15 350);
-  --color-cat-other: oklch(0.62 0.02 250);
-  --color-cat-income: oklch(0.6 0.14 150);
+  --color-cat-food: oklch(0.76 0.15 68);
+  --color-cat-transport: oklch(0.68 0.15 158);
+  --color-cat-shopping: oklch(0.6 0.18 258);
+  --color-cat-bills: oklch(0.67 0.12 205);
+  --color-cat-entertainment: oklch(0.6 0.19 295);
+  --color-cat-other: oklch(0.62 0.02 265);
+  --color-cat-income: oklch(0.66 0.15 155);
 
-  /* Generous radii and soft, low-contrast shadows are most of why a
-   * finance app reads as friendly rather than clinical. Shadows are tinted
-   * toward the background hue instead of neutral black, which keeps them
-   * from muddying the light ground. */
+  /* Generous radii and soft, low-contrast shadows are most of why a finance
+   * app reads as friendly rather than clinical. Shadows are tinted toward
+   * the background hue instead of neutral black, which keeps them from
+   * muddying the light ground. */
   --radius-tile: 0.875rem;
-  --radius-card: 1.5rem;
+  --radius-card: 1.375rem;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 2px oklch(0.24 0.02 250 / 0.04),
-    0 8px 24px -12px oklch(0.24 0.02 250 / 0.12);
-  --shadow-tile: 0 1px 2px oklch(0.24 0.02 250 / 0.08);
+  --shadow-card: 0 1px 2px oklch(0.21 0.02 265 / 0.04),
+    0 10px 30px -18px oklch(0.21 0.02 265 / 0.22);
+  --shadow-tile: 0 1px 2px oklch(0.21 0.02 265 / 0.06);
+  /* The floating nav pill and the add button sit above content, so they
+   * carry a deeper, wider shadow than a card resting on the page. */
+  --shadow-float: 0 8px 28px -8px oklch(0.21 0.02 265 / 0.35);
 }
 
-/* Dark is this file's own extension — the canvas is light-only, so these
- * are derived rather than copied: same hues, lightness inverted around the
- * midpoint, chroma pulled back slightly because saturated color reads
- * louder against a dark ground. */
+/* Dark is this file's own extension — the reference screens are light-only,
+ * so these are derived rather than copied: same hues, lightness inverted
+ * around the midpoint, chroma pulled back slightly because saturated color
+ * reads louder against a dark ground. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: oklch(0.19 0.014 250);
-    --color-surface: oklch(0.24 0.016 250);
-    --color-surface-sunken: oklch(0.165 0.014 250);
-    --color-border: oklch(0.32 0.016 250);
+    --color-bg: oklch(0.17 0.014 270);
+    --color-surface: oklch(0.225 0.016 270);
+    --color-surface-sunken: oklch(0.145 0.012 270);
+    --color-border: oklch(0.3 0.016 270);
 
-    --color-fg: oklch(0.96 0.006 240);
-    --color-fg-muted: oklch(0.74 0.014 250);
-    --color-fg-faint: oklch(0.58 0.016 250);
+    --color-fg: oklch(0.96 0.005 265);
+    --color-fg-muted: oklch(0.74 0.014 265);
+    --color-fg-faint: oklch(0.58 0.016 265);
 
-    --color-accent: oklch(0.72 0.12 175);
-    --color-accent-fg: oklch(0.19 0.014 250);
-    --color-accent-soft: oklch(0.3 0.05 175);
-    --color-accent-soft-fg: oklch(0.88 0.07 175);
+    --color-accent: oklch(0.66 0.19 285);
+    --color-accent-fg: oklch(1 0 0);
+    --color-accent-soft: oklch(0.3 0.08 285);
+    --color-accent-soft-fg: oklch(0.88 0.08 285);
 
-    --color-warn-soft: oklch(0.32 0.06 65);
-    --color-warn-fg: oklch(0.85 0.1 70);
+    --color-warn-soft: oklch(0.32 0.06 68);
+    --color-warn-fg: oklch(0.85 0.11 72);
 
-    --color-success-fg: oklch(0.78 0.13 150);
-    --color-danger: oklch(0.68 0.17 25);
-    --color-danger-fg: oklch(0.75 0.15 25);
+    --color-success-fg: oklch(0.78 0.14 155);
+    --color-danger: oklch(0.68 0.18 25);
+    --color-danger-fg: oklch(0.76 0.15 25);
     --color-danger-soft: oklch(0.3 0.06 25);
 
-    --color-cat-food: oklch(0.72 0.13 55);
-    --color-cat-transport: oklch(0.68 0.11 240);
-    --color-cat-shopping: oklch(0.66 0.12 300);
-    --color-cat-bills: oklch(0.64 0.11 175);
-    --color-cat-entertainment: oklch(0.7 0.13 350);
-    --color-cat-other: oklch(0.6 0.02 250);
-    --color-cat-income: oklch(0.68 0.12 150);
+    --color-nav: oklch(0.26 0.018 280);
+    --color-nav-fg: oklch(0.98 0.002 280);
+    --color-nav-fg-muted: oklch(0.68 0.015 280);
 
-    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.5);
+    --color-cat-food: oklch(0.78 0.14 68);
+    --color-cat-transport: oklch(0.72 0.14 158);
+    --color-cat-shopping: oklch(0.68 0.16 258);
+    --color-cat-bills: oklch(0.72 0.11 205);
+    --color-cat-entertainment: oklch(0.68 0.16 295);
+    --color-cat-other: oklch(0.65 0.02 265);
+    --color-cat-income: oklch(0.72 0.14 155);
+
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 10px 30px -18px oklch(0 0 0 / 0.6);
     --shadow-tile: 0 1px 2px oklch(0 0 0 / 0.35);
+    --shadow-float: 0 8px 28px -8px oklch(0 0 0 / 0.7);
   }
 }
 
@@ -134,6 +154,10 @@
   --color-danger-fg: var(--color-danger-fg);
   --color-danger-soft: var(--color-danger-soft);
 
+  --color-nav: var(--color-nav);
+  --color-nav-fg: var(--color-nav-fg);
+  --color-nav-fg-muted: var(--color-nav-fg-muted);
+
   --color-cat-food: var(--color-cat-food);
   --color-cat-transport: var(--color-cat-transport);
   --color-cat-shopping: var(--color-cat-shopping);
@@ -148,6 +172,7 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-tile: var(--shadow-tile);
+  --shadow-float: var(--shadow-float);
 
   /* System font stack — no next/font/google here on purpose: it needs
    * network access to fonts.googleapis.com at build time, which not every
@@ -180,5 +205,17 @@
   ::selection {
     background-color: var(--color-accent);
     color: var(--color-accent-fg);
+  }
+}
+
+@layer utilities {
+  /* The target UI's category tiles are a soft tint of the category hue with
+   * the hue itself as the glyph color, not a saturated chip. Mixing against
+   * --color-surface rather than white keeps the tint correct in dark mode
+   * too, so one class works in both themes. Set --tile-hue on the element
+   * (CategoryTile does). */
+  .tile-soft {
+    background-color: color-mix(in oklch, var(--tile-hue) 16%, var(--color-surface));
+    color: var(--tile-hue);
   }
 }

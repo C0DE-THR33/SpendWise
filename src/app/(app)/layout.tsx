@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getCategoriesForUser } from "@/lib/queries";
 import { SupabaseNotConfiguredError } from "@/lib/supabase/server";
 import { NotConfigured } from "@/components/NotConfigured";
 import { BottomNav } from "@/components/nav/BottomNav";
@@ -29,10 +30,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
+  // The add button in the middle of the bottom bar opens the cash sheet
+  // from every tab, so its category list is fetched once here rather than
+  // by each page that used to render its own copy of the button.
+  const categories = await getCategoriesForUser(user.id);
+
+  // pb-28 clears the floating nav pill, which no longer sits flush against
+  // the bottom edge: bar height plus the gap beneath it plus the safe area.
   return (
-    <div className="min-h-screen bg-bg pb-20">
+    <div className="min-h-screen bg-bg pb-[calc(7rem+env(safe-area-inset-bottom))]">
       {children}
-      <BottomNav />
+      <BottomNav categories={categories} />
     </div>
   );
 }

@@ -71,3 +71,100 @@ export function monthProgress(now: Date = new Date()): number {
   const total = daysInMonth(currentMonthKey(now));
   return (now.getDate() - 1) / total;
 }
+
+// ---------------------------------------------------------------------------
+// Analytics ranges
+// ---------------------------------------------------------------------------
+
+/**
+ * The four windows the Analytics segmented control offers. Everything that
+ * reads spend takes a plain {start, end} half-open range already
+ * (lib/queries.ts's getCategoryBreakdown), so a range is all a new window
+ * costs — no per-window query.
+ */
+export const RANGE_KEYS = ["day", "week", "month", "year"] as const;
+
+export type RangeKey = (typeof RANGE_KEYS)[number];
+
+const RANGE_KEY_SET: ReadonlySet<string> = new Set(RANGE_KEYS);
+
+/**
+ * Narrows an untrusted value — this arrives as a `?range=` query string,
+ * which anyone can type — to a RangeKey, falling back to the month view
+ * rather than throwing on a URL a user could have edited by hand.
+ */
+export function asRangeKey(value: string | undefined | null): RangeKey {
+  return value && RANGE_KEY_SET.has(value) ? (value as RangeKey) : "month";
+}
+
+export const RANGE_LABELS: Record<RangeKey, string> = {
+  day: "Day",
+  week: "Week",
+  month: "Month",
+  year: "Year",
+};
+
+/**
+ * The [start, end) range a RangeKey covers, in the same UTC-boundary terms
+ * monthRange() uses so the two agree about which day a transaction lands in.
+ *
+ * "week" is a trailing 7 days rather than a calendar week on purpose: on a
+ * Monday a calendar week would show a nearly empty chart, which reads as a
+ * bug rather than as a fact about the calendar.
+ */
+export function rangeFor(key: RangeKey, now: Date = new Date()): { start: Date; end: Date } {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+
+  switch (key) {
+    case "day": {
+      const start = new Date(Date.UTC(year, month, day));
+      return { start, end: new Date(Date.UTC(year, month, day + 1)) };
+    }
+    case "week":
+      return {
+        start: new Date(Date.UTC(year, month, day - 6)),
+        end: new Date(Date.UTC(year, month, day + 1)),
+      };
+    case "year":
+      return { start: new Date(Date.UTC(year, 0, 1)), end: new Date(Date.UTC(year + 1, 0, 1)) };
+    case "month":
+    default:
+      return monthRange(currentMonthKey(now));
+  }
+}
+
+/** The subtitle under the Analytics heading — what window is on screen. */
+export function formatRangeLabel(key: RangeKey, now: Date = new Date()): string {
+  switch (key) {
+    case "day":
+      return "Today";
+    case "week":
+      return "Last 7 days";
+    case "year":
+      return String(now.getFullYear());
+    case "month":
+    default:
+      return formatMonthLabel(currentMonthKey(now));
+  }
+}
+
+/**
+ * The heading over a day's transactions: "Today" and "Yesterday" by name,
+ * anything older by date. Compared on local calendar days, which is how a
+ * reader thinks about "today" — the UTC bucketing used for month ranges
+ * would put a late-evening transaction under tomorrow's heading.
+ */
+export function formatDayHeading(date: Date, now: Date = new Date()): string {
+  const days = Math.round(
+    (startOfLocalDay(now).getTime() - startOfLocalDay(date).getTime()) / 86_400_000,
+  );
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(date);
+}
+
+function startOfLocalDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}

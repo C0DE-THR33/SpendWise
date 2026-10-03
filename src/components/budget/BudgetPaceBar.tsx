@@ -15,10 +15,18 @@ export function BudgetPaceBar({
   spent,
   budget,
   now = new Date(),
+  onAccent = false,
 }: {
   spent: number;
   budget: number;
   now?: Date;
+  /**
+   * Render for the filled accent hero card on Home rather than a white
+   * card. The tones below are semantic (danger / warn / accent), and none
+   * of them is legible on a saturated violet ground — on the hero the bar
+   * goes white and the state is carried by the caption underneath instead.
+   */
+  onAccent?: boolean;
 }) {
   const remaining = budget - spent;
   const daysLeft = daysRemainingInMonth(now);
@@ -36,13 +44,19 @@ export function BudgetPaceBar({
   return (
     <div>
       <div className="relative">
-        <div className="h-3.5 w-full overflow-hidden rounded-pill bg-surface-sunken">
+        <div
+          className={cn(
+            "h-2.5 w-full overflow-hidden rounded-pill",
+            onAccent ? "bg-white/25" : "bg-surface-sunken",
+          )}
+        >
           <div
             className={cn(
               "h-full rounded-pill transition-[width] duration-500",
-              tone === "danger" && "bg-danger",
-              tone === "warn" && "bg-warn",
-              tone === "accent" && "bg-accent",
+              onAccent && "bg-white",
+              !onAccent && tone === "danger" && "bg-danger",
+              !onAccent && tone === "warn" && "bg-warn",
+              !onAccent && tone === "accent" && "bg-accent",
             )}
             style={{ width: `${Math.min(spentFraction, 1) * 100}%` }}
           />
@@ -50,33 +64,55 @@ export function BudgetPaceBar({
 
         {/* The month's own progress, drawn over the bar. */}
         <div
-          className="absolute -top-1 bottom-[-0.25rem] w-0.5 rounded-pill bg-fg/45"
+          className={cn(
+            "absolute -top-1 bottom-[-0.25rem] w-0.5 rounded-pill",
+            onAccent ? "bg-white/70" : "bg-fg/45",
+          )}
           style={{ left: `${timeFraction * 100}%` }}
           aria-hidden
         />
       </div>
 
-      <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="text-[13px] text-fg-muted">
+      <div className="mt-2.5 flex items-baseline justify-between gap-3">
+        <p className={cn("text-[13px]", onAccent ? "text-white/80" : "text-fg-muted")}>
           {overBudget ? (
-            <>
-              <span className="font-semibold text-danger-fg tnum">{formatCurrency(-remaining)}</span> over
-              budget
-            </>
+            // On the hero the overrun is already the headline, so repeating
+            // it here would print the same number twice; what's missing
+            // there is what was spent against what was budgeted.
+            onAccent ? (
+              <>
+                <span className="font-semibold text-white tnum">{formatCurrency(spent)}</span> of{" "}
+                <span className="tnum">{formatCurrency(budget)}</span> spent
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-danger-fg tnum">
+                  {formatCurrency(-remaining)}
+                </span>{" "}
+                over budget
+              </>
+            )
           ) : (
             <>
-              <span className="font-semibold text-fg tnum">{formatCurrency(perDay)}</span> a day for{" "}
-              {daysLeft} more {daysLeft === 1 ? "day" : "days"}
+              <span className={cn("font-semibold tnum", onAccent ? "text-white" : "text-fg")}>
+                {formatCurrency(perDay)}
+              </span>{" "}
+              a day for {daysLeft} more {daysLeft === 1 ? "day" : "days"}
             </>
           )}
         </p>
-        <p className="shrink-0 text-[13px] font-semibold text-fg-muted tnum">
+        <p
+          className={cn(
+            "shrink-0 text-[13px] font-semibold tnum",
+            onAccent ? "text-white" : "text-fg-muted",
+          )}
+        >
           {Math.round(spentFraction * 100)}%
         </p>
       </div>
 
       {aheadOfPace ? (
-        <p className="mt-1.5 text-[13px] text-warn-fg">
+        <p className={cn("mt-1.5 text-[13px]", onAccent ? "text-white/80" : "text-warn-fg")}>
           Spending faster than the month is passing.
         </p>
       ) : null}

@@ -116,18 +116,33 @@ needing to know who wrote it. If you're unsure whether something is a
 
 ## 3. Design system
 
-The design canvas (`design/*.dc.html`) is the **source of truth** for
-visual decisions — colors, spacing, the icon-tile system, copy tone. Code
-should port it faithfully, then extend it, never invent a parallel
-aesthetic. Concretely:
+A single agreed reference is the **source of truth** for visual
+decisions — colors, spacing, the icon-tile system, copy tone. Code should
+port it faithfully, then extend it, never invent a parallel aesthetic.
+Concretely:
 
-> ✅ **Divergence resolved (September 2026).** `globals.css` now carries
-> the canvas's OKLCH values verbatim — teal accent, light-first ground,
-> the `--warn` / `--accent-soft` / `--fg-faint` tokens the invented
-> palette lacked. The rebuild had reinvented all of this while believing
-> the canvas was lost; it was in git history the whole time. If a palette
-> ever looks "missing" again, check `git ls-tree HEAD design/` before
-> designing a replacement.
+> 🔄 **The reference changed (20 September 2026).** The source of truth is
+> now the target UI supplied by the product owner (the four reference
+> screens: home, analytics, wireframes, add-expense), **not**
+> `design/*.dc.html`. The canvas files are kept as history — they are what
+> v1 was built from — but a visual question is answered from the target UI
+> now, and `globals.css` carries its palette: near-white ground, pure
+> white cards, a **violet** primary, and category hues amber / green /
+> blue / cyan / violet / gray. The teal-accent canvas palette this file
+> previously told you to restore is superseded; do not "fix" globals.css
+> back to it.
+>
+> What the transformation changed, beyond color: the bottom bar is a dark
+> floating pill with **four tabs and a raised add button** (so /more moved
+> to the avatar in `PageHeader`, and the add-cash sheet is reachable from
+> every tab); category tiles are soft-tinted rather than saturated chips;
+> Analytics gained a real Day / Week / Month / Year control backed by
+> `rangeFor()` in `lib/dates.ts`; and the category row shared by Home,
+> Analytics and Budget is one component, `components/CategoryStatRow.tsx`.
+>
+> Screens are checked against it without a database through
+> `/design-preview`, a fixture-rendered dev-only route that 404s in
+> production.
 >
 > **Still open — the sixth category.** The canvas's sixth swatch is
 > **income**; `lib/categories.ts` ships **other**. `--color-cat-income`
@@ -143,11 +158,15 @@ A palette alone doesn't make an interface feel substantial. The first
 implementation used every correct token and still looked meek. What was
 missing was in four places, and they're worth stating as rules:
 
-- **Tinted surfaces, not neutral ones.** A card tinted toward its own
-  accent hue (`--color-accent-soft`) reads as a distinct plane; the same
-  card in neutral gray reads as absence. Hero panels get the tint, list
-  cards stay on `--color-surface`, and the ground is `--color-bg` — three
-  planes, not one.
+- **One saturated plane, not several tinted ones.** The target UI puts
+  the weight in a single filled accent card — Home's hero — and leaves
+  every other card pure white on a near-white ground. Hero gets the fill
+  (`--color-accent`, as a gradient), list cards stay on
+  `--color-surface`, and the ground is `--color-bg`. The earlier rule here
+  tinted every hero panel with `--color-accent-soft`; that reads as muddy
+  against a white-card design, and `--color-accent-soft` is now for small
+  soft accents (icon wells, the connect-bank prompt) rather than whole
+  panels.
 - **Icons need a body.** A 1.75px hairline glyph disappears against a
   saturated tile at 18px. Category icons are two-tone: translucent
   `currentColor` fill behind a solid stroke, so the shape is readable at
@@ -550,8 +569,8 @@ that caught every real bug in this project so far.
 - **Decide the pooled/direct database URL split before the first
   migration**, not after deploying — retrofitting it is a schema change
   and an env var rename touching every environment.
-- **Build the design canvas and the code's design tokens from the same
-  source values from day one** (this project did do this — `globals.css`'s
-  `:root` block is a direct copy of the canvas's CSS variables — worth
+- **Build the design reference and the code's design tokens from the same
+  source values from day one** (this project does do this — `globals.css`'s
+  `:root` block is the current reference's palette, nothing else — worth
   keeping deliberate as the project grows, since the two are easy to
   let drift once there are more than a handful of screens).

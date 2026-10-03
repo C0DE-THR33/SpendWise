@@ -21,8 +21,8 @@ export function DonutChart({
   // hairline it replaced looked like a loading spinner.
   const strokeWidth = 5.5;
 
-  const box = size === "lg" ? "size-52" : "size-44";
-  const valueText = size === "lg" ? "text-[28px]" : "text-2xl";
+  const box = size === "lg" ? "size-60" : "size-44";
+  const valueText = size === "lg" ? "text-[32px]" : "text-2xl";
 
   return (
     <div className={`relative mx-auto ${box}`}>
@@ -53,9 +53,12 @@ export function DonutChart({
           />
         ))}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+      {/* Caption above the number, as in the reference: the eye lands on
+        * the big figure either way, and reading "Total spent" first makes
+        * the figure mean something on the way in rather than after. */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+        <span className="text-[13px] font-medium text-fg-muted">{centerLabel}</span>
         <span className={`${valueText} font-bold tracking-tight text-fg tnum`}>{centerValue}</span>
-        <span className="text-xs font-medium text-fg-muted">{centerLabel}</span>
       </div>
     </div>
   );

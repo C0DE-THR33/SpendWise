@@ -18,6 +18,14 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string): boolean {
+  // The fixture-rendered design harness holds no user data and 404s in
+  // production (app/design-preview/page.tsx). Sending it to /login would
+  // defeat the point of a page that exists precisely so the UI can be
+  // looked at without a session.
+  if (process.env.NODE_ENV !== "production" && pathname === "/design-preview") {
+    return true;
+  }
+
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );

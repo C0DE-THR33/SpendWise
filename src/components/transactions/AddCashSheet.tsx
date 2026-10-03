@@ -5,40 +5,25 @@ import { useRouter } from "next/navigation";
 import { CategoryTile, DashedTile } from "./CategoryTile";
 import { asCategoryIcon, asCategoryColor, type CategoryOption } from "@/lib/categories";
 
-
-// The circular add button on Home, plus the sheet it opens. Bank rows come
+// The add-a-cash-transaction sheet, opened by the round button in the
+// middle of the bottom bar (components/nav/BottomNav.tsx). Bank rows come
 // from the AA sync; this is how cash — the spending a bank feed can never
 // see — gets in.
 //
-// Category is optional on purpose. Leaving it blank runs the merchant
+// It used to live in AddCashButton.tsx together with the floating button
+// Home rendered. The button moved into the nav so it is reachable from
+// every tab; the sheet came here so nothing imports a file named after a
+// button to get a sheet.
+//
+// The layout follows the reference's "Add Expenses" screen: the amount is
+// the first and largest thing, the category is a row of tiles rather than a
+// select, and everything else is secondary.
+//
+// Category stays optional on purpose. Leaving it blank runs the merchant
 // rules server-side (lib/categorize.ts), so "Auto rickshaw" files itself
 // under Transport without the user being made to choose. Picking one
 // explicitly overrides that and records MANUAL.
-export function AddCashButton({ categories }: { categories: CategoryOption[] }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Add a cash transaction"
-        // Sits above the fixed bottom nav (which is ~61px plus the safe
-        // area), so it can never overlap the tab bar on a device with a
-        // home indicator.
-        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50%-13rem))] z-20 flex size-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-card transition-transform active:scale-95"
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
-
-      {open ? <AddCashSheet categories={categories} onClose={() => setOpen(false)} /> : null}
-    </>
-  );
-}
-
-function AddCashSheet({
+export function AddCashSheet({
   categories,
   onClose,
 }: {
@@ -91,22 +76,34 @@ function AddCashSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-30 flex items-end bg-black/45" onClick={onClose}>
       <div
-        className="max-h-[85vh] w-full overflow-y-auto rounded-t-[1.75rem] bg-surface p-5 pb-8 shadow-card"
+        className="max-h-[88vh] w-full overflow-y-auto rounded-t-[1.75rem] bg-surface px-5 pb-8 pt-3 shadow-float"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-pill bg-border" />
-        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-fg-faint">
-          Cash transaction
-        </p>
-        <h2 className="mb-5 text-lg font-bold tracking-tight text-fg">What did you spend on?</h2>
+        <div className="mx-auto mb-5 h-1.5 w-10 rounded-pill bg-border" />
 
-        <label className="mb-2 block text-[13px] font-semibold text-fg-muted" htmlFor="cash-amount">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-tight text-fg">Add expense</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex size-9 items-center justify-center rounded-full bg-surface-sunken text-fg-muted"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* The amount is the screen, as in the reference: one oversized
+         * field on its own card, no label competing with it. */}
+        <label htmlFor="cash-amount" className="sr-only">
           Amount
         </label>
-        <div className="mb-4 flex items-center gap-2 rounded-tile border border-border bg-bg px-4 py-3">
-          <span className="text-xl font-bold text-fg-faint">₹</span>
+        <div className="mb-5 flex items-baseline justify-center gap-1.5 rounded-card bg-surface-sunken px-4 py-6">
+          <span className="text-3xl font-bold text-fg-faint">₹</span>
           <input
             id="cash-amount"
             type="number"
@@ -117,7 +114,11 @@ function AddCashSheet({
             onChange={(event) => setAmount(event.target.value)}
             placeholder="0"
             autoFocus
-            className="tnum w-full bg-transparent text-xl font-bold text-fg outline-none placeholder:text-fg-faint"
+            // No fixed width: field-sizing lets the box hug the digits so
+            // the ₹ stays next to them, and the max-width caps the default
+            // ~20ch input in browsers that don't support it yet. A
+            // full-width centered input strands the ₹ at the card's edge.
+            className="tnum min-w-[2ch] max-w-[9ch] bg-transparent text-left text-4xl font-bold tracking-tight text-fg outline-none field-sizing-content placeholder:text-fg-faint"
           />
         </div>
 
@@ -131,22 +132,28 @@ function AddCashSheet({
           onChange={(event) => setMerchantName(event.target.value)}
           placeholder="Auto rickshaw, chai, groceries…"
           maxLength={120}
-          className="mb-5 w-full rounded-tile border border-border bg-bg px-4 py-3 text-sm font-medium text-fg outline-none placeholder:text-fg-faint focus:border-accent"
+          className="mb-5 w-full rounded-tile border border-border bg-bg px-4 py-3.5 text-sm font-medium text-fg outline-none placeholder:text-fg-faint focus:border-accent"
         />
 
         <p className="mb-3 text-[13px] font-semibold text-fg-muted">
           Category <span className="font-normal text-fg-faint">— optional, we&apos;ll guess</span>
         </p>
-        <div className="mb-5 grid grid-cols-4 gap-y-4">
+        <div className="mb-6 grid grid-cols-4 gap-y-4">
           <button
             type="button"
             onClick={() => setCategoryId(null)}
             className="flex flex-col items-center gap-1.5"
           >
-            <span className={categoryId === null ? "rounded-[0.95rem] ring-2 ring-accent ring-offset-2 ring-offset-surface" : ""}>
+            <span
+              className={
+                categoryId === null
+                  ? "inline-flex rounded-[0.95rem] ring-2 ring-accent ring-offset-2 ring-offset-surface"
+                  : "inline-flex"
+              }
+            >
               <DashedTile size="md" label="question" />
             </span>
-            <span className="max-w-[4.5rem] truncate text-[11px] font-medium text-fg-muted">
+            <span className="max-w-[4.5rem] text-center text-[11px] font-medium leading-tight text-fg-muted">
               Auto
             </span>
           </button>
@@ -164,7 +171,10 @@ function AddCashSheet({
                 size="md"
                 selected={categoryId === category.id}
               />
-              <span className="max-w-[4.5rem] truncate text-[11px] font-medium text-fg-muted">
+              {/* Wrapped to two lines rather than truncated: at four
+                * columns "Food & Dining" and "Bills & Utilities" both clip
+                * to a stub that no longer names the category. */}
+              <span className="line-clamp-2 max-w-[4.5rem] text-center text-[11px] font-medium leading-tight text-fg-muted">
                 {category.name}
               </span>
             </button>
@@ -177,9 +187,9 @@ function AddCashSheet({
           type="button"
           onClick={save}
           disabled={!canSave}
-          className="w-full rounded-pill bg-accent py-3.5 text-sm font-bold text-accent-fg disabled:opacity-50"
+          className="w-full rounded-pill bg-accent py-4 text-sm font-bold text-accent-fg shadow-float transition-transform active:scale-[0.99] disabled:opacity-50 disabled:shadow-none"
         >
-          {saving ? "Saving…" : "Add transaction"}
+          {saving ? "Saving…" : "Add expense"}
         </button>
       </div>
     </div>

@@ -1,16 +1,23 @@
 import { cn } from "@/lib/utils";
 import type { CategoryIcon, CategoryColor } from "@/lib/categories";
 
-// The one way a category ever renders — a colored rounded-square tile with
-// a hand-drawn stroke-SVG icon. Never fall back to a plain colored dot or
+// The one way a category ever renders — a rounded-square tile with a
+// hand-drawn stroke-SVG icon. Never fall back to a plain colored dot or
 // a letter avatar once this exists (CONVENTIONS.md #3): consistency across
 // every screen is the entire point, which is also why the uncategorized
 // state below gets its own DashedTile rather than silently reusing this
 // one with muted colors.
+//
+// Two variants, one shape. "soft" is the default and what the target UI
+// uses everywhere a tile sits in a list or a picker: a 16%-tinted ground
+// with the category hue as the glyph color (.tile-soft in globals.css),
+// which stays quiet next to bold amounts. "solid" keeps the saturated
+// gradient chip for the rare spot that needs a tile to carry the emphasis
+// on its own.
 
 const SIZES = {
-  sm: { tile: "size-9", icon: 18, radius: "rounded-[0.7rem]" },
-  md: { tile: "size-11", icon: 22, radius: "rounded-[0.85rem]" },
+  sm: { tile: "size-10", icon: 19, radius: "rounded-[0.8rem]" },
+  md: { tile: "size-11", icon: 22, radius: "rounded-[0.875rem]" },
   lg: { tile: "size-14", icon: 27, radius: "rounded-[1.05rem]" },
 } as const;
 
@@ -74,9 +81,16 @@ export interface CategoryTileProps {
   color: CategoryColor;
   size?: Size;
   selected?: boolean;
+  variant?: "soft" | "solid";
 }
 
-export function CategoryTile({ icon, color, size = "md", selected = false }: CategoryTileProps) {
+export function CategoryTile({
+  icon,
+  color,
+  size = "md",
+  selected = false,
+  variant = "soft",
+}: CategoryTileProps) {
   const { tile, icon: iconSize, radius } = SIZES[size];
   const Icon = ICONS[icon];
 
@@ -86,15 +100,23 @@ export function CategoryTile({ icon, color, size = "md", selected = false }: Cat
         className={cn(
           tile,
           radius,
-          "flex shrink-0 items-center justify-center text-white shadow-tile",
-          selected && "ring-2 ring-accent ring-offset-2 ring-offset-bg",
+          "flex shrink-0 items-center justify-center",
+          variant === "soft" ? "tile-soft" : "text-white shadow-tile",
+          selected && "ring-2 ring-accent ring-offset-2 ring-offset-surface",
         )}
         style={{
-          // A flat fill looks pasted on; the tile gets a slight top-light
-          // gradient so it reads as a physical chip. color-mix keeps this
-          // derived from the one category token rather than needing a
-          // second hand-picked shade per category.
-          backgroundImage: `linear-gradient(160deg, color-mix(in oklch, var(--color-${color}) 82%, white), var(--color-${color}))`,
+          // One custom property carries the hue for both variants: .tile-soft
+          // mixes it against the surface, and the solid variant gradients it
+          // against white. Either way the tile is derived from the single
+          // category token rather than needing a hand-picked second shade.
+          ["--tile-hue" as string]: `var(--color-${color})`,
+          ...(variant === "solid"
+            ? {
+                // A flat fill looks pasted on; the solid tile gets a slight
+                // top-light gradient so it reads as a physical chip.
+                backgroundImage: `linear-gradient(160deg, color-mix(in oklch, var(--color-${color}) 82%, white), var(--color-${color}))`,
+              }
+            : null),
         }}
       >
         <Icon size={iconSize} />

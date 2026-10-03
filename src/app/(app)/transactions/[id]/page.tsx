@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getTransactionDetail, getCategoriesForUser } from "@/lib/queries";
 import { formatCurrency } from "@/lib/utils";
 import { CategorySource } from "@prisma/client";
 import { TransactionCategoryEditor } from "@/components/transactions/TransactionCategoryEditor";
+import { DetailHeader } from "@/components/ui/PageHeader";
 
 // How a category was decided, said plainly. Worth surfacing: after
 // automatic categorization exists, "why is this Transport?" is a real
@@ -46,18 +46,10 @@ export default async function TransactionDetailPage({
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <Link
-        href="/transactions"
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 6-6 6 6 6" />
-        </svg>
-        Transactions
-      </Link>
+      <DetailHeader title="Transaction" backHref="/transactions" backLabel="Back to activity" />
 
-      <section className="mb-5 rounded-card bg-accent-soft p-5 text-center shadow-card">
-        <p className="mb-1 text-[13px] font-semibold text-accent-soft-fg">
+      <section className="mb-5 rounded-card bg-surface p-6 text-center shadow-card">
+        <p className="mb-1 text-[13px] font-semibold text-fg-muted">
           {transaction.merchantName ?? transaction.description}
         </p>
         <p
@@ -68,7 +60,7 @@ export default async function TransactionDetailPage({
           {isCredit ? "+" : "−"}
           {formatCurrency(transaction.amount)}
         </p>
-        <p className="mt-1 text-[13px] font-medium text-accent-soft-fg">{dateLabel}</p>
+        <p className="mt-1 text-[13px] font-medium text-fg-muted">{dateLabel}</p>
       </section>
 
       <TransactionCategoryEditor

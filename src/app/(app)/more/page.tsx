@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { DetailHeader } from "@/components/ui/PageHeader";
 
 // Inline stroke-SVG on the same 20px grid as the bottom nav, in a tinted
 // tile — never emoji (CONVENTIONS.md #3). The first pass used emoji here,
@@ -61,17 +63,34 @@ const LINKS = [
   },
 ];
 
-export default function MorePage() {
+// Reached from the avatar in every screen's header rather than from a tab
+// of its own — the bottom bar is four tabs plus the add button now
+// (components/nav/BottomNav.tsx), so this is the app's profile screen and
+// leads with who you are signed in as.
+export default async function MorePage() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-5 text-2xl font-bold tracking-tight text-fg">More</h1>
+      <DetailHeader title="Profile" backHref="/home" />
+
+      <section className="mb-6 flex items-center gap-4 rounded-card bg-surface p-5 shadow-card">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl font-bold text-accent-soft-fg">
+          {user.email.charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[15px] font-bold text-fg">{user.email.split("@")[0]}</p>
+          <p className="truncate text-[13px] font-medium text-fg-muted">{user.email}</p>
+        </div>
+      </section>
 
       <div className="mb-5 overflow-hidden rounded-card bg-surface shadow-card">
         {LINKS.map((link, i) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`flex items-center gap-3.5 px-4 py-3.5 text-sm font-semibold text-fg ${
+            className={`flex items-center gap-3.5 px-4 py-4 text-[15px] font-semibold text-fg ${
               i > 0 ? "border-t border-border" : ""
             }`}
           >

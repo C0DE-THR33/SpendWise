@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getTransactionsData } from "@/lib/queries";
 import { TransactionsList } from "@/components/transactions/TransactionsList";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function TransactionsPage() {
   const user = await getCurrentUser();
@@ -10,7 +11,7 @@ export default async function TransactionsPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-5 text-2xl font-bold tracking-tight text-fg">Transactions</h1>
+      <PageHeader title="Activity" initial={user.email.charAt(0)} />
       <TransactionsList transactions={transactions} />
     </div>
   );
