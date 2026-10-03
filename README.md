@@ -1,263 +1,195 @@
 # SpendWise
 
-See where your money goes, without the spreadsheet. A Next.js full-stack
-app for tracking spending, budgets, and (eventually) investments — bank
-data comes in automatically via India's Account Aggregator network, so
-there's no manual entry for day-to-day transactions.
+**A personal finance app that imports your bank transactions automatically
+through India's Account Aggregator network, sorts them into categories,
+and shows where your money went.** You don't type anything in.
 
-Read [CONVENTIONS.md](./CONVENTIONS.md) before making changes — it's the
-project's actual design decisions and the reasoning behind them, not just
-a style guide.
+Built as a full-stack Next.js app with TypeScript, PostgreSQL and Prisma.
+It is wired end to end against the
+[Setu Account Aggregator](https://docs.setu.co/data/account-aggregator)
+sandbox, and it ships a local mock of that gateway that sends realistic data.
 
-## Stack
+![Next.js](https://img.shields.io/badge/Next.js_16-000?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_v4-06B6D4?logo=tailwindcss&logoColor=white)
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · PostgreSQL via
-Supabase · Prisma (classic CLI, 6.x) · Supabase Auth (magic link) · Setu
-Account Aggregator (sandbox) · Claude API for categorization · PostHog
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home: left to spend this month, income and spending" width="24%">
+  <img src="docs/screenshots/activity.png" alt="Activity: transactions imported from the bank, grouped by day" width="24%">
+  <img src="docs/screenshots/budget.png" alt="Budget: monthly budget with daily pace and per-category budgets" width="24%">
+  <img src="docs/screenshots/analytics.png" alt="Analytics: spending by category over a selectable range" width="24%">
+</p>
+<p align="center"><sub>Home · Activity · Budget · Analytics. Transactions were imported from the Setu sandbox bank.</sub></p>
 
-See CONVENTIONS.md §1 for exactly why each version is pinned where it is —
-worth reading before bumping any of them.
+---
 
-## Getting started
+## What it does
 
-1. **Create a Supabase project.** [supabase.com](https://supabase.com) →
-   New project.
-2. **Copy the env template and fill it in:**
-   ```bash
-   cp .env.example .env
-   ```
-   Every variable in `.env.example` has a comment saying exactly where to
-   get it — Supabase keys and both database URLs come from your project's
-   **Connect** panel (**ORMs → Prisma** tab for the database URLs). Setu
-   and Claude API keys are optional for exploring the UI — pages that need
-   them degrade gracefully (a disabled button, a clear message) rather
-   than crashing when they're unset.
-3. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-4. **Push the schema and generate the Prisma client:**
-   ```bash
-   npx prisma migrate dev --name init
-   ```
-5. **Seed the default categories** (safe to run anytime, any environment):
-   ```bash
-   npm run db:seed
-   ```
-6. **Run the app:**
-   ```bash
-   npm run dev
-   ```
-7. Sign in with a magic link at `/login`, then optionally seed rich demo
-   data for that account (requires signing in once first):
-   ```bash
-   npm run db:seed:demo -- you@example.com
-   ```
+- **Connect a bank account with consent instead of a password.** The user
+  approves a consent request on the aggregator's own screens. SpendWise
+  then pulls up to twelve months of statements on its own, so the user
+  never shares bank credentials or uploads a CSV.
+- **Categorize automatically.** Each imported transaction runs through a
+  merchant-rules engine (Swiggy → Food, Uber → Transport, Netflix →
+  Entertainment). If the user changes a category by hand, later syncs
+  leave it alone.
+- **Track budgets with pacing.** Each month has an overall budget and
+  per-category budgets. A pace bar compares how much you've spent with how
+  far through the month you are, so you see an overspend coming before it
+  happens.
+- **Show analytics.** Spending breaks down by category on a donut chart.
+  You can switch the date range and compare this month with last month.
+- **Record cash.** Cash spending that never reaches a bank can be added in
+  a couple of taps from a bottom sheet.
+- **Work on a phone.** The layout is built for mobile, with bottom-tab
+  navigation. Every screen was designed first in an HTML design canvas,
+  which is in [`design/`](./design).
 
-## Connecting the Setu AA sandbox
+## Engineering highlights
 
-Bank data arrives through [Setu's Account Aggregator gateway](https://docs.setu.co/data/account-aggregator).
-The app runs fine without it — `/connect-bank` degrades to a clear "not
-configured" message rather than crashing (CONVENTIONS.md #5) — but nothing
-imports until a sandbox project exists.
+**A complete Account Aggregator integration.** Consent creation, the
+approval redirect, account linking, data-session fetch and transaction
+ingest all work against Setu's live sandbox. A webhook route also
+handles consent and session updates server-to-server, so the import still
+finishes if the user closes the tab. Webhooks are verified with HMAC
+signatures and a constant-time comparison.
 
-1. **Create the FIU and product.** On [bridge.setu.co](https://bridge.setu.co),
-   go to Account Aggregator → **Set up another FIU** (company PAN and GSTIN;
-   sandbox does not validate them) → open **FIU businesses**, pick the
-   account, and create the **Account Aggregator - Data** product.
+<p align="center">
+  <img src="docs/screenshots/aa-consent.png" alt="Onemoney consent screen: choosing which Setu FIP accounts to share with SpendWise" width="80%">
+</p>
+<p align="center"><sub>The aggregator's consent screen. The user picks which accounts SpendWise may read, and SpendWise never sees bank credentials.</sub></p>
 
-   **Check which account aggregator the product instance is wired to, and
-   do not accept Onemoney.** This is the setting that decides whether a
-   consent can be *approved* rather than merely created, it is chosen on the
-   Bridge rather than in this repo, and it is invisible until the last step
-   of the flow.
+**Sync is idempotent and never overwrites a human.** Transactions are
+upserted on a compound unique key (`linkedAccountId`, `externalId`), so
+running a sync twice changes no rows. Each transaction records where its
+category came from (`CategorySource`), so a category the user set by hand
+always beats the automatic one.
 
-   Onemoney's UAT answers no mobile number its team has not pre-whitelisted
-   on request (1–2 business days). Until then it returns a consent id and an
-   approval URL exactly like a working AA, and only its own screen — three
-   redirects away from anything this codebase controls — refuses every OTP,
-   including the documented `123456`, with *"Incorrect OTP! Please check."*
-   That is what stalled the first attempt at this integration, and it is not
-   something the app can detect, retry or route around.
+**Parsers built for messy real-world data.** AA data is relayed from bank
+XML, so the JSON has odd casing (`fipID`, `FIstatus`), a single
+transaction arrives as a bare object instead of an array, and the
+statement summary is sometimes missing. The parsers handle all three, and
+the balance falls back to the latest transaction when the summary is
+absent. Every case was confirmed against payloads the live sandbox
+actually returned.
 
-   **Leave `SETU_AA_HANDLE` empty** so the app sends a bare mobile number.
-   That does not pick an AA — nothing in the request can — it just avoids
-   naming one the FIU is not registered with. Probed against the live
-   sandbox on one set of credentials:
+**A local mock gateway that behaves like the real one.**
+[`scripts/mock-aa.ts`](./scripts/mock-aa.ts) serves the same `/v2` API
+as Setu, so the app reaches it with one environment variable and no
+special-case code. It can delay sessions, fail one bank so a session ends
+`PARTIAL`, and send webhooks. Its statements come from a seeded random
+generator, so the data is identical every run. That makes "sync twice and
+the row count stays the same" a real test of the upsert.
 
-   | `vua` sent | Result |
-   |---|---|
-   | `9999999999` | **201 in 0.9s** — routed to whatever the Bridge says |
-   | `9999999999@onemoney` | 201 — the same AA, named explicitly |
-   | `9999999999@setu` | 500 — handle recognised, AA unreachable |
-   | `9999999999@finvu` | 400 — `fair use rules template id: null` |
-   | `9999999999@anumati` | 400 — `not as per Fair Usage Policy` |
-   | `9999999999@saafe` | 400 — handle not supported |
+**A categorization engine that avoids the obvious traps.** It is a pure
+function with no dependencies, so it can be tested on its own:
+- It matches whole words. A plain substring match would file *CHOCOLATE*
+  under Transport because it contains *OLA*.
+- Brand names are checked before generic keywords, so "Metro Card
+  Recharge" counts as Transport and not Bills.
+- Among matches of the same kind, the longer phrase wins: "Amazon Prime" →
+  Entertainment, "Amazon" → Shopping.
 
-   The finvu and anumati rejections are this FIU not being registered with
-   those AAs rather than a malformed request: a null fair-use template means
-   no policy exists for the FIU there, so its permitted consent frequency is
-   zero. Getting one of them is an onboarding request to Setu
-   (`aa@setu.co`), not a config change.
+**Graceful degradation.** Leave out the Setu credentials or the API keys
+and the app still runs. Each affected page shows a clear "not configured"
+state instead of crashing.
 
-2. **Configure the consent object** in Step 1. Purpose, FI types, fetch type
-   and consent mode all live on the Bridge, not in this codebase — the app
-   only sends the parts that vary per request (who, how long, over what date
-   range, where to redirect back to). What SpendWise needs:
+**Design decisions are written down.** [CONVENTIONS.md](./CONVENTIONS.md)
+records the architecture decisions, why each dependency is pinned, the
+auth and data-ownership rules, and what the first build taught. That
+includes the two real bugs it shipped, a missing ownership check and a
+percentage gap from uncategorized spend, and how to avoid both from the
+start.
 
-   | Setting | Value | Why |
-   |---|---|---|
-   | Purpose | **102** — spending pattern analysis | Literally what this app does; the purpose code is shown to the user on the approval screen |
-   | FI types | **DEPOSIT** | Savings/current accounts. Add others only when the app can actually render them |
-   | Consent types | **TRANSACTIONS**, plus SUMMARY and PROFILE | Transactions are the product; summary carries the account type and balance |
-   | Fetch type | **PERIODIC** | ONETIME allows a single data session ever, so every sync after the first would fail |
-   | Consent mode | **STORE** | Transactions are written to our own database, not just displayed |
-   | Frequency | as high as the form allows | Only `POST /sessions` counts against it, but the default of **1 per hour** means a second manual sync within the hour is rejected |
+## Architecture
 
-   Two things worth setting deliberately while you are in there: the
-   **purpose text** shown on the approval screen defaults to Setu's loan
-   example ("To verify your income and calculate loan offer"), which is not
-   what this app does; and under *Advanced options*, leave auto-fetch off
-   (the app opens its own data sessions) but turn **partial fetch on**, so
-   one slow FIP doesn't cost you the accounts that did respond.
+```
+Browser ──► Next.js App Router (server components + server actions)
+              │
+              ├── /api/aa/consent ─┐
+              ├── /api/aa/link     ├──► Setu AA gateway ──► Bank (FIP)
+              ├── /api/aa/sync     │        (or local mock)
+              └── /api/aa/webhook ◄┘   signed callbacks
+              │
+              ├── lib/setu.ts, setu-parse.ts   gateway client + tolerant parsers
+              ├── lib/aa-ingest.ts             idempotent upsert + categorize
+              ├── lib/categorize.ts            pure rules engine
+              │
+              └── Prisma ──► PostgreSQL (Supabase)
+                     Supabase Auth (magic link) guards every route
+```
 
-3. **Copy the credentials** from *Step 2 — Test your product* into `.env`:
-   `SETU_CLIENT_ID`, `SETU_CLIENT_SECRET`, `SETU_PRODUCT_INSTANCE_ID`.
-   Leave `SETU_AA_BASE_URL` at the sandbox host.
-4. **Point Setu's notifications at this app.** Setu posts consent and data
-   updates server-to-server, so `localhost` is not reachable — expose the
-   dev server with a tunnel and set the Bridge notification URL to
-   `https://<your-tunnel>/api/aa/webhook`. If the Bridge lets you attach a
-   shared secret, put the same value in `SETU_WEBHOOK_SECRET` and the route
-   will require a matching `x-setu-signature`.
-5. **Smoke-test the credentials before touching the app.** This exercises
-   the gateway from the terminal — no database row, no sign-in — and prints
-   what the parsers made of each response, so a renamed field shows up as
-   one line of output instead of an empty screen:
-   ```bash
-   npm run setu:smoke -- consent 9999999999
-   ```
-   `9999999999` is the sandbox's seeded customer; a number that isn't seeded
-   comes back as `400 Customer vua not found`.
-   Approve at the printed URL, then `npm run setu:smoke -- status <id>` and
-   `npm run setu:smoke -- fetch <id>`. Add `--raw` to any of them to see
-   Setu's untouched JSON alongside the parsed result.
-6. **Run the flow for real.** Sign in, open `/connect-bank`, enter a
-   10-digit mobile number, and approve on Setu's screens. Sandbox accounts
-   are seeded against Setu's test mobile numbers and OTPs — the current list
-   is in your Bridge project's test panel, since it changes independently of
-   this repo.
-
-   Two mock FIPs are attached to sandbox products, and they behave
-   differently at the OTP step: **Setu FIP** sends a dynamic OTP to the
-   number the consent was raised for (which nobody owns, so it is a dead
-   end locally), while **Setu FIP-2** uses the static OTP `123456`. Pick
-   FIP-2 on the account-linking screen unless you have a reason not to.
-
-What happens after you approve:
-
-| Step | Route | What it does |
+| Step | Route | What happens |
 |---|---|---|
-| Consent raised | `POST /api/aa/consent` | Creates the consent with Setu and records `aa_consents` (the only mapping from Setu's consent id back to a user) |
-| Back from Setu | `POST /api/aa/link` | Re-reads the consent, creates a `LinkedAccount` per account approved, opens a data session |
-| Data fetch | `POST /api/aa/sync` | Pulls the session and upserts transactions, categorizing on the way in |
-| Out of band | `POST /api/aa/webhook` | Same two steps, driven by Setu's notifications, for users who close the tab |
+| Consent | `POST /api/aa/consent` | Raises a consent with Setu and records which user it belongs to |
+| Return from approval | `POST /api/aa/link` | Links each approved account and opens a data session |
+| Fetch | `POST /api/aa/sync` | Pulls statements, then upserts and categorizes transactions |
+| Out of band | `POST /api/aa/webhook` | Runs the same steps from Setu's signed notifications |
 
-**Sync is idempotent and never overwrites a human.** Re-running it no-ops
-rows already stored (`[linkedAccountId, externalId]` is a real compound
-unique) and leaves any category the user set by hand alone.
+## Tech stack
 
-## Running the flow without Setu
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Server Components, Server Actions), React 19 |
+| Language | TypeScript (strict) |
+| Styling | Tailwind CSS v4, design tokens defined in CSS |
+| Database | PostgreSQL on Supabase, Prisma ORM 6, migrations and seed scripts |
+| Auth | Supabase Auth (passwordless magic link) |
+| Bank data | Setu Account Aggregator API (sandbox), local mock gateway |
+| Tooling | ESLint, `tsx` scripts for seeding, smoke tests and backfills |
 
-The AA is the one part of this flow the repo cannot fix from here. A
-product instance is wired to a specific account aggregator on the Bridge,
-and if that AA will not approve a consent — as Onemoney's UAT will not,
-for any number it has not pre-whitelisted — then nothing downstream of the
-approval screen can be exercised at all. `scripts/mock-aa.ts` stands in for
-the aggregator so the rest of the flow stays testable:
+## Project structure
+
+```
+src/
+  app/
+    (app)/            home, transactions, budget, analytics, more/*
+    api/aa/           consent · link · sync · webhook
+    connect-bank/     bank-linking flow
+    login/, auth/     magic-link sign-in
+  components/         UI: donut chart, budget pace bar, transaction list, sheets
+  lib/                Setu client, parsers, ingest, categorization, queries
+prisma/               schema, migrations, default + demo seed data
+scripts/              mock AA gateway, Setu smoke test, dev sign-in, backfill
+design/               HTML design canvas for every screen
+docs/SETUP.md         full setup and Setu sandbox walkthrough
+```
+
+## Running it locally
+
+You need Node 20+ and a free [Supabase](https://supabase.com) project.
+
+```bash
+cp .env.example .env               # each variable says where to find its value
+npm install
+npx prisma migrate dev --name init
+npm run db:seed                    # default categories
+npm run dev
+```
+
+To try the bank-connect flow without Setu credentials, start the mock
+gateway and set `SETU_AA_BASE_URL=http://localhost:4100`:
 
 ```bash
 npm run mock:aa -- --webhook http://localhost:3000/api/aa/webhook
 ```
 
-Then point the app at it and restart the dev server:
+Open `/connect-bank`, enter any 10-digit number and approve. The app
+links two accounts and imports about 470 categorized transactions.
 
-```
-SETU_AA_BASE_URL=http://localhost:4100
-```
+**[docs/SETUP.md](./docs/SETUP.md)** has the full walkthrough: the Setu
+sandbox, demo data, local sign-in without email limits, and every npm
+script.
 
-That is the whole integration. It serves the same four endpoints under the
-same `/v2` prefix, so the app reaches it through the ordinary client with
-the ordinary credentials check, and no code path is special-cased for it —
-switching back to the real gateway is the same one line.
+## Roadmap
 
-Open `/connect-bank`, enter any 10-digit number, and the mock's approval
-screen offers two accounts to tick. Approving redirects back with the same
-`?success=true&id=…` Setu appends, and the app links, fetches and
-categorizes roughly 470 transactions across twelve months.
-
-It is a stand-in for the *aggregator*, not a fake for `lib/setu.ts`, and
-the payloads are deliberately awkward in the ways real relayed FIP data is:
-XML-derived casing (`fipID`, `FIstatus`, `maskedAccNumber`), a single
-transaction arriving as a bare object rather than a one-element array, and
-a coarse `DEPOSIT` on the consent against a finer `CURRENT` in the
-statement summary. A mock that sent tidy JSON would let a broken parser
-pass.
-
-| Flag | Effect |
-|---|---|
-| `--port 4200` | Serve somewhere else |
-| `--webhook <url>` | Post `CONSENT_STATUS_UPDATE` / `SESSION_STATUS_UPDATE` notifications, so the out-of-band path runs too |
-| `--pending-reads 3` | Make sessions report `PENDING` for three polls before delivering |
-| `--partial` | Second FIP `TIMEOUT`s and the session reports `PARTIAL` |
-
-Statement data is generated from a seeded PRNG, so it is identical across
-runs — which is what makes "sync twice, expect the row count not to move" a
-test of the upsert rather than of the generator.
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build |
-| `npm run lint` | ESLint |
-| `npm run db:generate` | Regenerate the Prisma client after a schema change |
-| `npm run db:migrate` | Create/apply a migration (`prisma migrate dev`) |
-| `npm run db:seed` | Seed shipped defaults (categories) |
-| `npm run db:seed:demo -- <email>` | Seed rich demo data for one existing user |
-| `npm run dev:signin -- <email>` | Mint a sign-in link without sending email (dev only) |
-| `npm run db:categorize -- <email>` | Apply merchant rules to existing uncategorized transactions (`--dry-run` to preview) |
-| `npm run setu:smoke -- <cmd>` | Probe the Setu AA sandbox from the terminal (`consent` / `status` / `fetch`, `--raw`) |
-| `npm run mock:aa` | Serve a local stand-in for the AA gateway, so the bank-connect flow runs without Setu |
-
-### Signing in locally
-
-Supabase's built-in email service is rate-limited to roughly **2 messages
-per hour, project-wide** — it exists for testing, not real use — so the
-normal magic-link flow stalls quickly in development, and it can't work
-at all for a demo address that isn't a real mailbox. For local work, mint
-a link directly instead:
-
-```bash
-npm run dev:signin -- you@example.com
-```
-
-Paste the printed URL into whichever browser you want signed in. It's
-single-use and expires, so run it again for a fresh one. Requires
-`SUPABASE_SECRET_KEY` in `.env`.
-
-Before anyone other than you signs in, configure custom SMTP under
-**Authentication → SMTP Settings** in the Supabase dashboard — that
-removes the cap and makes the real magic-link flow usable.
-
-## Verification
-
-Before committing, at minimum:
-
-```bash
-npm run build && npm run lint
-```
-
-A passing build is necessary but not sufficient — see CONVENTIONS.md §8
-before assuming a page actually works from that alone.
+- **Bill scanner.** Extract receipts with the Claude API. The data model
+  and the screen exist; the upload flow does not yet.
+- **LLM fallback for categorization.** Handle narrations that no rule
+  matches.
+- **Investments.** The ledger can only be edited by hand for now. It
+  could sync from the AA's equity and mutual-fund data types.
+- **Product analytics** with PostHog.
