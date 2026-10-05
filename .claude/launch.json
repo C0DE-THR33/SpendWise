@@ -23,6 +23,28 @@
       "port": 4100
     },
     {
+      "name": "aa-proto-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../WhatsLeft-AA",
+        "run",
+        "dev"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "aa-proto-mock",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../WhatsLeft-AA",
+        "run",
+        "mock:aa"
+      ],
+      "port": 4100
+    },
+    {
       "name": "setu-probe",
       "runtimeExecutable": "node",
       "runtimeArgs": [
