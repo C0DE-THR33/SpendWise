@@ -140,10 +140,6 @@ function authHeaders(): Record<string, string> {
  * touches an unnormalised FIP payload.
  */
 export async function setuRequest(path: string, init?: RequestInit): Promise<unknown> {
-  return setuFetch(path, init);
-}
-
-async function setuFetch(path: string, init?: RequestInit): Promise<unknown> {
   const headers = authHeaders();
   const response = await fetch(`${baseUrl()}${API_VERSION}${path}`, {
     ...init,
@@ -196,7 +192,7 @@ export async function createConsentRequest(params: {
   // anything else with a 400. So a consent carries no application identity
   // whatsoever, and the AaConsent row is not merely the trustworthy way to
   // map a consent id to a user — it is the only way (CONVENTIONS.md #4c).
-  const data = (await setuFetch("/consents", {
+  const data = (await setuRequest("/consents", {
     method: "POST",
     body: JSON.stringify({
       consentDuration: { unit: "MONTH", value: String(params.durationMonths ?? 12) },
@@ -239,7 +235,7 @@ export interface SetuConsent {
  * actually picked, and therefore nothing to create LinkedAccount rows from.
  */
 export async function getConsent(consentId: string): Promise<SetuConsent> {
-  const data = (await setuFetch(`/consents/${encodeURIComponent(consentId)}?expanded=true`)) as {
+  const data = (await setuRequest(`/consents/${encodeURIComponent(consentId)}?expanded=true`)) as {
     id?: string;
     status?: string;
     detail?: { consentExpiry?: string };
@@ -269,7 +265,7 @@ export async function createDataSession(params: {
   consentId: string;
   dataRange: DataRange;
 }): Promise<{ dataSessionId: string; status: string }> {
-  const data = (await setuFetch("/sessions", {
+  const data = (await setuRequest("/sessions", {
     method: "POST",
     body: JSON.stringify({
       consentId: params.consentId,
@@ -296,7 +292,7 @@ export async function createDataSession(params: {
  */
 export async function getDataSession(dataSessionId: string): Promise<ParsedDataSession> {
   try {
-    return parseDataSession(await setuFetch(`/sessions/${encodeURIComponent(dataSessionId)}`));
+    return parseDataSession(await setuRequest(`/sessions/${encodeURIComponent(dataSessionId)}`));
   } catch (error) {
     // The live sandbox answers a read before the FIPs have delivered with a
     // 400 ("Data is not yet ready for fetch, retry after FI notification")

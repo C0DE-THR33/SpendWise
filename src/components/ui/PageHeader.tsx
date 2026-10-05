@@ -14,14 +14,11 @@ export function PageHeader({
   title,
   eyebrow,
   initial,
-  action,
 }: {
   title: string;
   eyebrow?: string;
   /** First letter of the signed-in user's email — the stand-in avatar. */
   initial?: string;
-  /** Replaces the avatar when a screen needs its own control there. */
-  action?: React.ReactNode;
 }) {
   return (
     <header className="mb-5 flex items-start justify-between gap-3">
@@ -34,15 +31,13 @@ export function PageHeader({
         </h1>
       </div>
 
-      {action ?? (
-        <Link
-          href="/more"
-          aria-label="Profile and more"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-accent-soft-fg shadow-card ring-1 ring-border"
-        >
-          {(initial ?? "?").toUpperCase()}
-        </Link>
-      )}
+      <Link
+        href="/more"
+        aria-label="Profile and more"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-accent-soft-fg shadow-card ring-1 ring-border"
+      >
+        {(initial ?? "?").toUpperCase()}
+      </Link>
     </header>
   );
 }

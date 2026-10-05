@@ -15,20 +15,19 @@ export const CATEGORY_ICONS = [
 
 export type CategoryIcon = (typeof CATEGORY_ICONS)[number];
 
-const CATEGORY_ICON_SET: ReadonlySet<string> = new Set(CATEGORY_ICONS);
-
 /**
- * Narrows an untrusted `string` (fresh out of the database) to a
- * CategoryIcon. Never throws — an unexpected value is logged and mapped to
- * "other" so one bad row can't crash a whole page render.
+ * Narrows an untrusted `string` (fresh out of the database) to one of a
+ * closed set. Never throws — an unexpected value is logged and mapped to the
+ * fallback so one bad row can't crash a whole page render.
  */
-export function asCategoryIcon(value: string): CategoryIcon {
-  if (CATEGORY_ICON_SET.has(value)) {
-    return value as CategoryIcon;
-  }
+function narrow<T extends string>(allowed: readonly T[], value: string, fallback: T): T {
+  if ((allowed as readonly string[]).includes(value)) return value as T;
+  console.error(`Unexpected category value "${value}", falling back to "${fallback}"`);
+  return fallback;
+}
 
-  console.error(`Unexpected category icon "${value}", falling back to "other"`);
-  return "other";
+export function asCategoryIcon(value: string): CategoryIcon {
+  return narrow(CATEGORY_ICONS, value, "other");
 }
 
 // Every color a category tile can use is one of these CSS custom-property
@@ -45,15 +44,8 @@ export const CATEGORY_COLORS = [
 
 export type CategoryColor = (typeof CATEGORY_COLORS)[number];
 
-const CATEGORY_COLOR_SET: ReadonlySet<string> = new Set(CATEGORY_COLORS);
-
 export function asCategoryColor(value: string): CategoryColor {
-  if (CATEGORY_COLOR_SET.has(value)) {
-    return value as CategoryColor;
-  }
-
-  console.error(`Unexpected category color "${value}", falling back to "cat-other"`);
-  return "cat-other";
+  return narrow(CATEGORY_COLORS, value, "cat-other");
 }
 
 export const UNCATEGORIZED_LABEL = "Uncategorized";

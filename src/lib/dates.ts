@@ -41,10 +41,6 @@ export function formatShortDate(date: Date): string {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(date);
 }
 
-export function isSameMonth(date: Date, key: MonthKey): boolean {
-  return date.getUTCFullYear() === key.year && date.getUTCMonth() + 1 === key.month;
-}
-
 /** Total days in a month, leap years included. */
 export function daysInMonth({ year, month }: MonthKey): number {
   // Day 0 of the *next* month is the last day of this one, which sidesteps
@@ -162,7 +158,7 @@ export function formatDayHeading(date: Date, now: Date = new Date()): string {
   );
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(date);
+  return formatShortDate(date);
 }
 
 function startOfLocalDay(date: Date): Date {

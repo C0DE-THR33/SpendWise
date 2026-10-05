@@ -1,16 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-// Duplicated (not imported) from lib/supabase/server.ts on purpose — see
-// client.ts for why. This one runs in src/proxy.ts, which can't import
-// next/headers's cookies() either (there's no request-scoped store there,
-// just the NextRequest/NextResponse pair passed in).
-function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  );
-}
+import { isSupabaseConfigured } from "./env";
 
 /**
  * Builds a Supabase client bound to one request/response pair, and the

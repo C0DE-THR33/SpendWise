@@ -202,9 +202,6 @@ export function categorizeByRules(input: {
   return null;
 }
 
-/** Exposed for the verification script and for counting coverage. */
-export const RULE_COUNT = BRAND_RULES.length + KEYWORD_RULES.length;
-
 // A NOTE ON THE SIX-CATEGORY CEILING
 //
 // Groceries, travel and health all get squeezed into an existing bucket

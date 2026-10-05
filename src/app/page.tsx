@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserId } from "@/lib/auth";
-import { SupabaseNotConfiguredError } from "@/lib/supabase/server";
+import { SupabaseNotConfiguredError } from "@/lib/supabase/env";
 import { NotConfigured } from "@/components/NotConfigured";
 
 // Root route: just a traffic director. Signed in → /home. Not signed in →

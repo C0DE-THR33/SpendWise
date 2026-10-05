@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createClient, SupabaseNotConfiguredError } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { SupabaseNotConfiguredError } from "@/lib/supabase/env";
 import type { User } from "@prisma/client";
 
 // The *only* place application code asks "who is signed in" —

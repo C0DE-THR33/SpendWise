@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCategoriesForUser } from "@/lib/queries";
-import { SupabaseNotConfiguredError } from "@/lib/supabase/server";
+import { SupabaseNotConfiguredError } from "@/lib/supabase/env";
 import { NotConfigured } from "@/components/NotConfigured";
 import { BottomNav } from "@/components/nav/BottomNav";
 

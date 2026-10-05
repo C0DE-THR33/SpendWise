@@ -2,7 +2,8 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient, SupabaseNotConfiguredError } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
+import { SupabaseNotConfiguredError } from "@/lib/supabase/env";
 
 type Status = "idle" | "sending" | "sent" | "error";
 

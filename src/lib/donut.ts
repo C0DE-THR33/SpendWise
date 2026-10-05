@@ -36,8 +36,8 @@ export interface DonutResult {
  */
 export function computeDonutSegments(
   items: DonutInput[],
-  circumference = 100,
 ): DonutResult {
+  const circumference = 100;
   const total = items.reduce((sum, item) => sum + Math.max(item.value, 0), 0);
 
   if (total <= 0) {
