@@ -37,7 +37,6 @@ model User {
   categories     Category[]
   monthlyBudgets MonthlyBudget[]
   investments    Investment[]
-  billScans      BillScan[]
 
   @@map("users")
 }
@@ -268,30 +267,4 @@ enum InvestmentType {
   FIXED_DEPOSIT
   GOLD
   OTHER
-}
-
-// A receipt photo run through the bill scanner. `rawExtraction` keeps the
-// full parse (JSON) for debugging a bad read; the typed columns are what
-// the UI actually shows. Kept separate from Transaction because a scanned
-// bill isn't a bank-verified line until/unless the user turns it into one.
-model BillScan {
-  id               String         @id @default(cuid())
-  userId           String
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  imageUrl         String
-  status           BillScanStatus @default(PROCESSING)
-  merchantName     String?
-  amount           Decimal?       @db.Decimal(12, 2)
-  scanDate         DateTime?
-  rawExtraction    Json?
-  createdAt        DateTime       @default(now())
-
-  @@index([userId])
-  @@map("bill_scans")
-}
-
-enum BillScanStatus {
-  PROCESSING
-  DONE
-  FAILED
 }

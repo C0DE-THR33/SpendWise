@@ -104,10 +104,9 @@ export default async function HomePage() {
         <StatTile label="Spent" value={formatCurrency(total)} tone="danger" />
       </section>
 
-      <section className="mb-6 grid grid-cols-3 gap-3">
+      <section className="mb-6 grid grid-cols-2 gap-3">
         <QuickAction href="/budget" label="Budget" icon={<WalletGlyph />} />
         <QuickAction href="/analytics" label="Analytics" icon={<ChartGlyph />} />
-        <QuickAction href="/more/bill-scanner" label="Scan bill" icon={<ScanGlyph />} />
       </section>
 
       {total > 0 ? (
@@ -277,15 +276,6 @@ function ChartGlyph() {
   return (
     <svg {...GLYPH}>
       <path d="M4 20V10M12 20V4M20 20v-7" />
-    </svg>
-  );
-}
-
-function ScanGlyph() {
-  return (
-    <svg {...GLYPH}>
-      <path d="M3.5 8.5v-3a2 2 0 0 1 2-2h3M15.5 3.5h3a2 2 0 0 1 2 2v3M20.5 15.5v3a2 2 0 0 1-2 2h-3M8.5 20.5h-3a2 2 0 0 1-2-2v-3" />
-      <path d="M7.5 12h9" />
     </svg>
   );
 }

@@ -334,15 +334,6 @@ export async function getInvestmentsData(userId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Bill scanner
-// ---------------------------------------------------------------------------
-
-export async function getBillScansData(userId: string) {
-  const scans = await db.billScan.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
-  return scans.map((scan) => ({ ...scan, amount: scan.amount === null ? null : toNum(scan.amount) }));
-}
-
-// ---------------------------------------------------------------------------
 // Transaction detail
 // ---------------------------------------------------------------------------
 

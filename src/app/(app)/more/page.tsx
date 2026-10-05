@@ -31,16 +31,6 @@ const LINKS = [
     ),
   },
   {
-    href: "/more/bill-scanner",
-    label: "Bill scanner",
-    icon: (
-      <svg {...ICON_PROPS}>
-        <path d="M3.5 8.5v-3a2 2 0 0 1 2-2h3M15.5 3.5h3a2 2 0 0 1 2 2v3M20.5 15.5v3a2 2 0 0 1-2 2h-3M8.5 20.5h-3a2 2 0 0 1-2-2v-3" />
-        <path d="M7.5 12h9" />
-      </svg>
-    ),
-  },
-  {
     href: "/connect-bank",
     label: "Connect a bank account",
     icon: (

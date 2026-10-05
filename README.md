@@ -184,8 +184,7 @@ script.
 
 ## Roadmap
 
-- **Bill scanner.** Extract receipts with the Claude API. The data model
-  and the screen exist; the upload flow does not yet.
+- **Bill scanner.** Extract receipts with the Claude API.
 - **LLM fallback for categorization.** Handle narrations that no rule
   matches.
 - **Investments.** The ledger can only be edited by hand for now. It
