@@ -71,8 +71,6 @@ four of these across two builds (below) — none would have been caught by
 ## 2. Repository layout
 
 ```
-design/                    UI concept: *.dc.html + canvas.json, a design
-                            canvas (not the app) — see "Design system" below
 prisma/
   schema.prisma             full data model, with rationale in comments,
                              not just field lists
@@ -124,10 +122,10 @@ Concretely:
 > 🔄 **The reference changed (20 September 2026).** The source of truth is
 > now the target UI supplied by the product owner (the four reference
 > screens: home, analytics, wireframes, add-expense), **not**
-> `design/*.dc.html`. The canvas files are kept as history — they are what
-> v1 was built from — but a visual question is answered from the target UI
-> now, and `globals.css` carries its palette: near-white ground, pure
-> white cards, a **violet** primary, and category hues amber / green /
+> the v1 HTML design canvas (removed; `git show 7180f69:design/` has it),
+> and a visual question is answered from the target UI now, and
+> `globals.css` carries its palette: near-white ground, pure white cards,
+> a **violet** primary, and category hues amber / green /
 > blue / cyan / violet / gray. The teal-accent canvas palette this file
 > previously told you to restore is superseded; do not "fix" globals.css
 > back to it.

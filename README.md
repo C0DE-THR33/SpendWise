@@ -45,8 +45,7 @@ sandbox, and it ships a local mock of that gateway that sends realistic data.
 - **Record cash.** Cash spending that never reaches a bank can be added in
   a couple of taps from a bottom sheet.
 - **Work on a phone.** The layout is built for mobile, with bottom-tab
-  navigation. Every screen was designed first in an HTML design canvas,
-  which is in [`design/`](./design).
+  navigation.
 
 ## Engineering highlights
 
@@ -154,7 +153,6 @@ src/
   lib/                Setu client, parsers, ingest, categorization, queries
 prisma/               schema, migrations, default + demo seed data
 scripts/              mock AA gateway, Setu smoke test, dev sign-in, backfill
-design/               HTML design canvas for every screen
 docs/SETUP.md         full setup and Setu sandbox walkthrough
 ```
 
